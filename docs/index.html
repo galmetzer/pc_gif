@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title> Mesh Viewer </title>
+		<style>
+			body { margin: 0; }
+			canvas { width: 100%; height: 100% }
+		</style>
+	</head>
+	<body>
+        <script src="static/three.js"></script>
+        <script src="static/controls/OrbitControls.js"></script>
+        <script src="static/loaders/OBJLoader.js"></script>
+        <script src="static/utils.js"></script>
+        <script nomodule src="static/core/Faces3.js"></script>  
+		<script>
+			var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+            // camera = new THREE.PerspectiveCamera( 55, window.innerWidth / window.innerHeight, 2, 2000 );
+            // camera.position.z = 1000;
+
+            scene.fog = new THREE.FogExp2( 0x000000, 0.001 );
+            const sprite = new THREE.TextureLoader().load( 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/sprites/disc.png' );
+            var renderer = new THREE.WebGLRenderer();
+            renderer.setSize( window.innerWidth, window.innerHeight * 0.9 );
+            document.body.appendChild( renderer.domElement );
+
+            var controls = new THREE.OrbitControls( camera, renderer.domElement );
+            
+            var loader = new THREE.OBJLoader();
+
+            var keyLight = new THREE.DirectionalLight(new THREE.Color('hsl(30, 100%, 75%)'), 1.0);
+            // var keyLight = new THREE.SpotLight(new THREE.Color('hsl(30, 100%, 75%)'), 1.0);
+            keyLight.position.set(-100, 0, 100);
+
+            var fillLight = new THREE.DirectionalLight(new THREE.Color('hsl(240, 100%, 75%)'), 0.75);
+            // var fillLight = new THREE.SpotLight(new THREE.Color('hsl(240, 100%, 75%)'), 0.75);
+            fillLight.position.set(100, 0, 100);
+
+            var backLight = new THREE.DirectionalLight(0xffffff, 1.0);
+            // var backLight = new THREE.SpotLight(0xffffff, 1.0);
+            backLight.position.set(100, 0, -100).normalize();
+
+            var morelight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+            morelight1.position.set(-100, 0, 100);
+            scene.add(morelight1);
+
+            var morelight2 = new THREE.DirectionalLight(0xffffff, 1.0);
+            morelight2.position.set(0, -100, -100);
+            scene.add(morelight2);
+
+            var morelight3 = new THREE.DirectionalLight(0xffffff, 1.0);
+            morelight3.position.set(0, 0, -1000);
+            scene.add(morelight3);
+
+            scene.add(keyLight);
+            scene.add(fillLight);
+            scene.add(backLight);
+
+            scale = 1
+
+            camera.position.z = scale;
+            camera.position.y = scale;
+            camera.position.x = scale;
+
+            var obj = '';
+            let p_material = new THREE.PointsMaterial({ color: 0xFFFFFF, size: 1 });
+
+            function loader_file_handler(data) {
+                    // output the text to the console
+                    let lines = data.split('\n');
+                    let xyz = [];
+                    let colors = [];
+                    var dotGeometry = new THREE.Geometry();
+                    var color_flag;
+                    for(i=0; i < lines.length; i++)
+                    {
+                        let l = lines[i];
+                        let spt = l.split(' ');
+                        if(l.length > 0 & spt[0] == 'v'){
+                            spt.splice(0, 1);
+                        }
+                        
+                        if(spt.length >= 3)
+                        {
+                            //xyz.push(1);
+                            var point = [parseFloat(spt[0]), parseFloat(spt[1]), parseFloat(spt[2])];
+                            if (spt.length < 6){
+                                var color = [255.0, 255.0, 255.0]
+                                color_flag = false;
+                            }
+                            else{
+                                var color = [parseFloat(spt[3]), parseFloat(spt[4]), parseFloat(spt[5])];
+                                color_flag = true;
+                            }
+                            xyz.push(point);
+                            colors.push(color);
+                            dotGeometry.vertices.push(new THREE.Vector3( point[0], point[1], point[2]));
+                            dotGeometry.colors.push(new THREE.Color( color[0] / 255, color[1] / 255, color[2] / 255));
+                        }
+                        
+
+                    }
+
+                    // var dotMaterial = new THREE.PointsMaterial( { size: 0.01, sizeAttenuation: true, vertexColors: THREE.VertexColors } );
+                    if(color_flag){
+                    var dotMaterial = new THREE.PointsMaterial({ size: 3, map: sprite, sizeAttenuation: false, alphaTest: 0.5, transparent: true, vertexColors: THREE.VertexColors });
+                    }
+                    else{
+                        var dotMaterial = new THREE.PointsMaterial({ size: 3, map: sprite, sizeAttenuation: false, alphaTest: 0.5, transparent: false, vertexColors: THREE.VertexColors });
+                    }
+
+                    if(lines.length < 5000)
+                    {
+                        var dotMaterial = new THREE.PointsMaterial({ size: 5, map: sprite, sizeAttenuation: false, alphaTest: 0.5, transparent: false, vertexColors: THREE.VertexColors });
+                    }
+
+                    // dotMaterial.color.setHSL( 1.0, 0.3, 0.7 );
+                    var dot = new THREE.Points( dotGeometry, dotMaterial );
+                    // scene.push( dot );
+                    scene.children.push(dot);
+                    while(scene.children.length > base_elements_in_stack + sub_points.length)
+                                    scene.children.splice(base_elements_in_stack, 1);
+            }
+
+
+
+            function animate() {
+                requestAnimationFrame( animate );
+                controls.update();
+                renderer.setPixelRatio( window.devicePixelRatio );
+                renderer.setSize( window.innerWidth, window.innerHeight*0.9 );
+                renderer.render( scene, camera );
+            }
+            animate();
+
+            var floader = new THREE.FileLoader();
+            var files = getAllUrlParams().files.split(';');
+            var num_files = files.length;
+            var file_counter = -1;
+            var base_elements_in_stack = scene.children.length;
+            var sub_points;
+
+            
+            if(getAllUrlParams().interval == null)
+                var ms_interval = 500;
+            else
+                var ms_interval = parseInt(getAllUrlParams().interval);
+
+            setInterval(() => {  
+                    var checkbox = document.getElementById('run');
+                    if(checkbox.checked){
+                        file_counter = (file_counter + 1) % num_files;     
+                        sub_points = files[file_counter].split(',');
+                        for(var sub_i=0;sub_i<sub_points.length;sub_i++){
+                            console.log(file_counter)
+
+                            floader.load(
+                            // resource URL
+                            sub_points[sub_i],
+
+                            // onLoad callback
+                            loader_file_handler,
+
+                            // onProgress callback
+                            function ( xhr ) {
+                                console.log( (xhr.loaded / xhr.total * 100) + '% loaded' );
+                            },
+
+                            // onError callback
+                            function ( err ) {
+                                console.error( 'An error happened' );
+                            }
+                        );
+                    }
+                    document.getElementById('iter_number').innerHTML = files[file_counter];
+                }
+
+            }, ms_interval); // setInterval
+
+            
+
+		</script>
+
+
+        <script>
+            
+
+        </script>
+
+        <div id='iter_number'> iter number </div>
+
+        <input type="checkbox" id="run" name="run" value="run" checked="true">
+        <label for="run"> Run </label><br>
+
+        <button onclick=" location.href='index.html?files=files/anchor/exports/0.obj;files/anchor/exports/200.obj;files/anchor/exports/300.obj;files/anchor/exports/400.obj;files/anchor/exports/500.obj;files/anchor/exports/600.obj;files/anchor/exports/800.obj;files/anchor/exports/1000.obj;files/anchor/exports/1100.obj;files/anchor/exports/1200.obj;files/anchor/exports/1300.obj;files/anchor/exports/1400.obj;files/anchor/exports/1500.obj;files/anchor/exports/1600.obj;files/anchor/exports/1700.obj;files/anchor/exports/1800.obj;files/anchor/exports/2000.obj;files/anchor/exports/2200.obj;files/anchor/exports/2300.obj;files/anchor/exports/export_iter:2500.xyz;files/anchor/exports/export_iter:3000.xyz;files/anchor/exports/export_iter:3500.xyz;files/anchor/exports/export_iter:4000.xyz;files/anchor/exports/export_iter:4500.xyz;files/anchor/exports/export_iter:5000.xyz' " style="margin: 5pt">Anchor</button>
+
+        <button onclick=" location.href='index.html?files=files/lamp/0.obj;files/lamp/1000.obj;files/lamp/2000.obj;files/lamp/3000.obj;files/lamp/4000.obj;files/lamp/5000.obj;files/lamp/6000.obj;files/lamp/6000.obj;files/lamp/7000.obj;files/lamp/8000.obj;files/lamp/10000.obj;files/lamp/11000.obj;files/lamp/12000.obj;files/lamp/13000.obj;files/lamp/14000.obj;files/lamp/15000.obj;files/lamp/16000.obj;files/lamp/17000.obj;files/lamp/18000.obj;files/lamp/19000.obj' " style="margin: 5pt">Lamp</button>
+
+        <button onclick=" location.href='index.html?files=files/alien/exports/export_iter:0.xyz;files/alien/exports/export_iter:50.xyz;files/alien/exports/export_iter:100.xyz;files/alien/exports/export_iter:150.xyz;files/alien/exports/export_iter:200.xyz;files/alien/exports/export_iter:250.xyz;files/alien/exports/export_iter:300.xyz;files/alien/exports/export_iter:350.xyz;files/alien/exports/export_iter:400.xyz;files/alien/exports/export_iter:450.xyz;files/alien/exports/export_iter:500.xyz;files/alien/exports/export_iter:550.xyz;files/alien/exports/export_iter:600.xyz;files/alien/exports/export_iter:650.xyz;files/alien/exports/export_iter:700.xyz;files/alien/exports/export_iter:750.xyz;files/alien/exports/export_iter:800.xyz;files/alien/exports/export_iter:850.xyz;files/alien/exports/export_iter:900.xyz;files/alien/exports/export_iter:950.xyz;files/alien/exports/export_iter:1000.xyz;files/alien/exports/export_iter:1200.xyz;files/alien/exports/export_iter:1250.xyz;files/alien/exports/export_iter:1300.xyz;files/alien/exports/export_iter:1350.xyz;files/alien/exports/export_iter:1400.xyz;files/alien/exports/export_iter:1450.xyz;files/alien/exports/export_iter:1500.xyz;files/alien/exports/export_iter:1550.xyz;files/alien/exports/export_iter:1600.xyz;files/alien/exports/export_iter:1650.xyz;files/alien/exports/export_iter:1700.xyz;files/alien/exports/export_iter:1750.xyz;files/alien/exports/export_iter:1800.xyz;files/alien/exports/export_iter:1850.xyz;files/alien/exports/export_iter:1900.xyz;files/alien/exports/export_iter:1950.xyz;files/alien/exports/export_iter:2000.xyz;files/alien/exports/export_iter:2050.xyz;files/alien/exports/export_iter:3000.xyz;files/alien/exports/export_iter:4000.xyz;files/alien/exports/export_iter:5000.xyz;files/alien/exports/export_iter:6000.xyz;files/alien/exports/export_iter:7000.xyz;files/alien/exports/export_iter:8000.xyz;files/alien/exports/export_iter:9000.xyz;files/alien/exports/export_iter:10000.xyz;files/alien/exports/export_iter:11000.xyz;files/alien/exports/export_iter:12000.xyz;files/alien/exports/export_iter:13000.xyz;files/alien/exports/export_iter:13200.xyz;files/alien/exports/export_iter:13250.xyz;files/alien/exports/export_iter:13300.xyz;files/alien/exports/export_iter:13350.xyz;files/alien/exports/export_iter:13400.xyz;files/alien/exports/export_iter:13450.xyz;files/alien/exports/export_iter:13500.xyz;files/alien/exports/export_iter:13550.xyz;files/alien/exports/export_iter:13600.xyz;files/alien/exports/export_iter:13650.xyz;files/alien/exports/export_iter:13700.xyz;files/alien/exports/export_iter:13750.xyz;files/alien/exports/export_iter:13800.xyz;files/alien/exports/export_iter:13850.xyz;files/alien/exports/export_iter:13900.xyz;files/alien/exports/export_iter:13950.xyz;files/alien/exports/export_iter:14000.xyz;files/alien/exports/export_iter:15000.xyz;files/alien/exports/export_iter:16000.xyz' " style="margin: 5pt">Alien</button>
+
+        <button onclick=" location.href='index.html?files=files/alien/sources/export_iter:0.xyz;files/alien/sources/export_iter:1000.xyz;files/alien/sources/export_iter:2000.xyz;files/alien/sources/export_iter:3000.xyz;files/alien/sources/export_iter:4000.xyz;files/alien/sources/export_iter:5000.xyz;files/alien/sources/export_iter:6000.xyz;files/alien/sources/export_iter:7000.xyz;files/alien/sources/export_iter:8000.xyz;files/alien/sources/export_iter:9000.xyz;files/alien/sources/export_iter:10000.xyz;files/alien/sources/export_iter:11000.xyz;files/alien/sources/export_iter:12000.xyz;files/alien/sources/export_iter:13000.xyz;files/alien/sources/export_iter:14000.xyz;files/alien/sources/export_iter:15000.xyz;files/alien/sources/export_iter:16000.xyz' " style="margin: 5pt">Alien Source</button>
+
+        <button onclick=" location.href='index.html?files=files/alien/targets/export_iter:0.xyz;files/alien/targets/export_iter:1000.xyz;files/alien/targets/export_iter:2000.xyz;files/alien/targets/export_iter:3000.xyz;files/alien/targets/export_iter:4000.xyz;files/alien/targets/export_iter:5000.xyz;files/alien/targets/export_iter:6000.xyz;files/alien/targets/export_iter:7000.xyz;files/alien/targets/export_iter:8000.xyz;files/alien/targets/export_iter:9000.xyz;files/alien/targets/export_iter:10000.xyz;files/alien/targets/export_iter:11000.xyz;files/alien/targets/export_iter:12000.xyz;files/alien/targets/export_iter:13000.xyz;files/alien/targets/export_iter:14000.xyz;files/alien/targets/export_iter:15000.xyz;files/alien/targets/export_iter:16000.xyz' "style="margin: 5pt">Alien Targets</button>
+
+        <button onclick=" location.href='index.html?files=files/alien/sources/export_iter:0.xyz,files/alien/targets/export_iter:0.xyz;files/alien/sources/export_iter:1000.xyz,files/alien/targets/export_iter:1000.xyz;files/alien/sources/export_iter:2000.xyz,files/alien/targets/export_iter:2000.xyz;files/alien/sources/export_iter:3000.xyz,files/alien/targets/export_iter:3000.xyz;files/alien/sources/export_iter:4000.xyz,files/alien/targets/export_iter:4000.xyz;files/alien/sources/export_iter:5000.xyz,files/alien/targets/export_iter:5000.xyz;files/alien/sources/export_iter:6000.xyz,files/alien/targets/export_iter:6000.xyz;files/alien/sources/export_iter:7000.xyz,files/alien/targets/export_iter:7000.xyz;files/alien/sources/export_iter:8000.xyz,files/alien/targets/export_iter:8000.xyz;files/alien/sources/export_iter:9000.xyz,files/alien/targets/export_iter:9000.xyz;files/alien/sources/export_iter:10000.xyz,files/alien/targets/export_iter:10000.xyz;files/alien/sources/export_iter:11000.xyz,files/alien/targets/export_iter:11000.xyz;files/alien/sources/export_iter:12000.xyz,files/alien/targets/export_iter:12000.xyz;files/alien/sources/export_iter:13000.xyz,files/alien/targets/export_iter:13000.xyz;files/alien/sources/export_iter:14000.xyz,files/alien/targets/export_iter:14000.xyz;files/alien/sources/export_iter:15000.xyz,files/alien/targets/export_iter:15000.xyz;files/alien/sources/export_iter:16000.xyz,files/alien/targets/export_iter:16000.xyz' "style="margin: 5pt">Alien Training Pairs</button>
+
+        <button onclick=" location.href='index.html?files=files/tiki/exports/export_iter:0.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:1000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:1500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:2000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:2500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:3000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:3500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:4000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:4500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:5000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:5500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:6000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:6500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:7000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:7500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:8000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:8500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:9000.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:9500.xyz,files/tiki/target-marked.obj;files/tiki/exports/export_iter:10000.xyz,files/tiki/target-marked.obj' "style="margin: 5pt">Tiki</button>
+
+        <button onclick=" location.href='index.html?files=files/camera/exports/export_iter:0.xyz,files/camera/target.obj;files/camera/exports/export_iter:100.xyz,files/camera/target.obj;files/camera/exports/export_iter:200.xyz,files/camera/target.obj;files/camera/exports/export_iter:300.xyz,files/camera/target.obj;files/camera/exports/export_iter:400.xyz,files/camera/target.obj;files/camera/exports/export_iter:500.xyz,files/camera/target.obj;files/camera/exports/export_iter:600.xyz,files/camera/target.obj;files/camera/exports/export_iter:700.xyz,files/camera/target.obj;files/camera/exports/export_iter:800.xyz,files/camera/target.obj;files/camera/exports/export_iter:900.xyz,files/camera/target.obj;files/camera/exports/export_iter:1000.xyz,files/camera/target.obj;files/camera/exports/export_iter:1100.xyz,files/camera/target.obj;files/camera/exports/export_iter:1200.xyz,files/camera/target.obj;files/camera/exports/export_iter:1300.xyz,files/camera/target.obj;files/camera/exports/export_iter:1400.xyz,files/camera/target.obj;files/camera/exports/export_iter:1500.xyz,files/camera/target.obj;files/camera/exports/export_iter:1600.xyz,files/camera/target.obj;files/camera/exports/export_iter:1700.xyz,files/camera/target.obj;files/camera/exports/export_iter:1800.xyz,files/camera/target.obj;files/camera/exports/export_iter:1900.xyz,files/camera/target.obj;files/camera/exports/export_iter:2000.xyz,files/camera/target.obj;files/camera/exports/export_iter:2100.xyz,files/camera/target.obj;files/camera/exports/export_iter:2200.xyz,files/camera/target.obj;files/camera/exports/export_iter:2300.xyz,files/camera/target.obj;files/camera/exports/export_iter:2400.xyz,files/camera/target.obj;files/camera/exports/export_iter:2500.xyz,files/camera/target.obj;files/camera/exports/export_iter:2600.xyz,files/camera/target.obj;files/camera/exports/export_iter:2700.xyz,files/camera/target.obj;files/camera/exports/export_iter:2800.xyz,files/camera/target.obj;files/camera/exports/export_iter:2900.xyz,files/camera/target.obj;files/camera/exports/export_iter:3000.xyz,files/camera/target.obj;files/camera/exports/export_iter:3100.xyz,files/camera/target.obj;files/camera/exports/export_iter:3200.xyz,files/camera/target.obj;files/camera/exports/export_iter:3300.xyz,files/camera/target.obj;files/camera/exports/export_iter:3400.xyz,files/camera/target.obj;files/camera/exports/export_iter:3500.xyz,files/camera/target.obj;files/camera/exports/export_iter:3600.xyz,files/camera/target.obj;files/camera/exports/export_iter:3700.xyz,files/camera/target.obj;files/camera/exports/export_iter:3800.xyz,files/camera/target.obj;files/camera/exports/export_iter:3900.xyz,files/camera/target.obj;files/camera/exports/export_iter:4000.xyz,files/camera/target.obj;files/camera/exports/export_iter:4100.xyz,files/camera/target.obj;files/camera/exports/export_iter:4200.xyz,files/camera/target.obj;files/camera/exports/export_iter:4300.xyz,files/camera/target.obj;files/camera/exports/export_iter:4400.xyz,files/camera/target.obj;files/camera/exports/export_iter:4500.xyz,files/camera/target.obj;files/camera/exports/export_iter:4600.xyz,files/camera/target.obj;files/camera/exports/export_iter:4700.xyz,files/camera/target.obj;files/camera/exports/export_iter:4800.xyz,files/camera/target.obj;files/camera/exports/export_iter:4900.xyz,files/camera/target.obj;files/camera/exports/export_iter:5000.xyz,files/camera/target.obj;files/camera/exports/export_iter:5100.xyz,files/camera/target.obj;files/camera/exports/export_iter:5200.xyz,files/camera/target.obj;files/camera/exports/export_iter:5300.xyz,files/camera/target.obj;files/camera/exports/export_iter:5400.xyz,files/camera/target.obj;files/camera/exports/export_iter:5500.xyz,files/camera/target.obj;files/camera/exports/export_iter:5600.xyz,files/camera/target.obj;files/camera/exports/export_iter:5700.xyz,files/camera/target.obj;files/camera/exports/export_iter:5800.xyz,files/camera/target.obj;files/camera/exports/export_iter:5900.xyz,files/camera/target.obj;files/camera/exports/export_iter:6000.xyz,files/camera/target.obj;files/camera/exports/export_iter:6100.xyz,files/camera/target.obj;files/camera/exports/export_iter:6200.xyz,files/camera/target.obj;files/camera/exports/export_iter:6300.xyz,files/camera/target.obj;files/camera/exports/export_iter:6400.xyz,files/camera/target.obj;files/camera/exports/export_iter:6500.xyz,files/camera/target.obj;files/camera/exports/export_iter:6600.xyz,files/camera/target.obj' "style="margin: 5pt">Camera</button>
+
+         <button onclick=" location.href='index.html?files=files/camera/target.obj;files/camera/camera_noise_result.xyz&interval=1000' "style="margin: 5pt">Camera Result</button>
+
+    </p>
+	</body>
+</html>
+
