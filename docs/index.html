@@ -15,6 +15,8 @@
         <script src="static/utils.js"></script>
         <script nomodule src="static/core/Faces3.js"></script>  
 		<script>
+            THREE.Cache.enabled = true;
+
 			var scene = new THREE.Scene();
             var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
 
